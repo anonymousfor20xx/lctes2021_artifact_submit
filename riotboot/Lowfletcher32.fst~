@@ -1,0 +1,73 @@
+module LowFletcher32
+
+open FStar.Integers
+open FStar.Int
+open FStar.Int.Cast
+
+module B = LowStar.Buffer
+module C = LowStar.Comment
+module P = LowStar.Printf
+
+open FStar.HyperStack.ST
+open LowStar.BufferOps
+
+
+open RbComm
+
+val dowhile : t:UInt32.t{t>=1ul} -> tlen:UInt32.t{tlen >= 0ul /\ tlen <= t} ->d:(B.buffer UInt16.t){ B.length d > (UInt32.v t)} -> UInt32.t -> UInt32.t ->  ST (UInt32.t & UInt32.t) 
+ (requires (fun h0 -> B.live h0 d))
+ (ensures (fun h0 _ h1 -> B.live h1 d /\ B.modifies B.loc_none h0 h1))
+ (decreases (v tlen))
+
+let rec dowhile t tlen d s1 s2 =
+   P.(printf "dowhile_t: 0d%ul\n" t done);
+   P.(printf "dowhile_tlen: 0d%ul\n" tlen done);
+   P.(printf "dowhile_s1: 0d%ul\n" s1 done);
+   P.(printf "dowhile_s2: 0d%ul\n" s2 done);
+    match tlen with
+    | 0ul -> (s1, s2)
+      (*let d1 = UInt32.uint_to_t (UInt16.v (d.(t-tlen-1ul)) ) in
+       P.(printf "dowhile_d1: 0d%ul\n" d1 done);
+       (s1, s2)*)
+    | _ -> 
+        let d2 = UInt32.uint_to_t (UInt16.v (d.(t-tlen))) in
+         P.(printf "data= 0d:%ul\n" d2 done);        
+        let sum1 =UInt32.add_mod s1 d2 in
+          let sum2 = UInt32.add_mod s2 sum1 in
+           P.(printf "dowhile_sum1: 0d%ul" sum1 done);
+           P.(printf "dowhile_sum2: 0d%ul\n" sum2 done);
+            dowhile t (tlen - 1ul) d sum1 sum2 
+
+val  while_t : (words : UInt16.t{words >= 0us}) -> d: B.buffer UInt16.t{ B.length d > (UInt16.v words)} -> UInt32.t -> UInt32.t -> ST (UInt32.t & UInt32.t) 
+ (requires (fun h0 -> B.live h0 d))
+ (ensures (fun h0 _ h1 -> B.live h1 d /\ B.modifies B.loc_none h0 h1))
+ (decreases (v words))
+
+let rec while_t words data s1 s2 = 
+   P.(printf "while_t_words: 0d%us\n" words done);
+   P.(printf "while_t_s1: 0d%ul\n" s1 done);
+   P.(printf "while_t_s2: 0d%ul\n" s2 done);
+  match words with
+  | 0us -> (s1, s2)
+  | _ -> 
+    let tlen = if words > 359us then 359us else words in
+    let tlen_32 = uint16_to_uint32 tlen in
+    let (sum1, sum2) = dowhile tlen_32 tlen_32 data s1 s2 in
+     while_t (UInt16.sub_mod words tlen) data (UInt32.add_mod (UInt32.logand sum1 0xfffful) (sum1 >>^ 16ul)) (UInt32.add_mod (UInt32.logand sum2 0xfffful) (sum2 >>^ 16ul))
+
+val fletch32 : words:UInt16.t{words>=0us} -> d:B.buffer UInt16.t{B.length d > UInt16.v words} -> ST UInt32.t  
+ (requires (fun h0 -> B.live h0 d))
+ (ensures (fun h0 _ h1 -> B.live h1 d /\ B.modifies B.loc_none h0 h1))
+
+let fletch32 words d =    
+    P.(printf "words: 0d%us\n" words done);
+  let (sum1,sum2) = while_t words d 0xfffful 0xfffful in
+    P.(printf "sum1: 0d%ul\n" sum1 done);
+    P.(printf "sum2: 0d%ul\n" sum2 done);
+  let sum11 = UInt32.add_mod (sum1 &^ 0xfffful) (sum1 >>^ 16ul) in
+    P.(printf "sum11: 0d%ul\n" sum11 done);
+  let sum21 = UInt32.add_mod (sum2 &^ 0xfffful) (sum2 >>^ 16ul) in
+    P.(printf "sum21: 0d%ul\n" sum21 done);
+  let re = (sum21 <<^ 16ul) |^ sum11 in
+    P.(printf "header checksum: 0d%ul\n" re done);
+    re
