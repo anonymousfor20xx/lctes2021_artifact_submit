@@ -6,7 +6,7 @@ This repository contains the version of ARM in F* presented in the LCTES2021 sub
 
 1. arm
    1. [arm_def.fst](https://github.com/anonymousfor20xx/lctes2021_artifact_submit/blob/main/arm/arm_def.fst): syntax + memory model
-   2. [arm_semantics.fst]https://github.com/anonymousfor20xx/lctes2021_artifact_submit/blob/main/arm/arm_semantics.fst): semantics
+   2. [arm_semantics.fst](https://github.com/anonymousfor20xx/lctes2021_artifact_submit/blob/main/arm/arm_semantics.fst): semantics
    3. [valid.fst](https://github.com/anonymousfor20xx/lctes2021_artifact_submit/blob/main/arm/valid.fst): valid functions of each instruction 
    4. [properties.fst](https://github.com/anonymousfor20xx/lctes2021_artifact_submit/blob/main/arm/properties.fst): properties/lemmas of our arm model
    5. [jump_to_cpu](https://github.com/anonymousfor20xx/lctes2021_artifact_submit/blob/main/arm/jump_to_cpu.fst): the `cpu_jump_to_image` inplementation and verification.
